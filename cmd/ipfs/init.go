@@ -28,7 +28,6 @@ var initCmd = &cmds.Command{
 
 	Options: []cmds.Option{
 		cmds.IntOption("bits", "b", "Number of bits to use in the generated RSA private key (defaults to 4096)"),
-		cmds.StringOption("passphrase", "p", "Passphrase for encrypting the private key"),
 		cmds.BoolOption("force", "f", "Overwrite existing config (if it exists)"),
 
 		// TODO need to decide whether to expose the override as a file or a
