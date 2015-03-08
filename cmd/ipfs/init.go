@@ -48,19 +48,17 @@ var initCmd = &cmds.Command{
 			res.SetError(err, cmds.ErrNormal)
 			return
 		}
+
 		if !bitsOptFound {
 			nBitsForKeypair = nBitsForKeypairDefault
 		}
 
-		rpipe, wpipe := io.Pipe()
-		go func() {
-			defer wpipe.Close()
-			if err := doInit(wpipe, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
-				res.SetError(err, cmds.ErrNormal)
-				return
-			}
-		}()
-		res.SetOutput(rpipe)
+		var buf bytes.Buffer
+		if err := doInit(&buf, req.Context().ConfigRoot, force, nBitsForKeypair); err != nil {
+			res.SetError(err, cmds.ErrNormal)
+			return
+		}
+		res.SetOutput(&buf)
 	},
 }
 
@@ -82,15 +80,18 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 	if fsrepo.IsInitialized(repoRoot) && !force {
 		return errRepoExists
 	}
+
 	conf, err := config.Init(out, nBitsForKeypair)
 	if err != nil {
 		return err
 	}
+
 	if fsrepo.IsInitialized(repoRoot) {
 		if err := fsrepo.Remove(repoRoot); err != nil {
 			return err
 		}
 	}
+
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
 		return err
 	}
@@ -105,10 +106,12 @@ func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) err
 func addDefaultAssets(out io.Writer, repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	r := fsrepo.At(repoRoot)
 	if err := r.Open(); err != nil { // NB: repo is owned by the node
 		return err
 	}
+
 	nd, err := core.NewIPFSNode(ctx, core.Offline(r))
 	if err != nil {
 		return err
@@ -124,6 +127,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		if err != nil {
 			return err
 		}
+
 		k := u.B58KeyDecode(s)
 		if err := dirb.AddChild(fname, k); err != nil {
 			return err
@@ -135,9 +139,11 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	if err != nil {
 		return err
 	}
+
 	if err := nd.Pinning.Pin(dir, true); err != nil {
 		return err
 	}
+
 	if err := nd.Pinning.Flush(); err != nil {
 		return err
 	}
