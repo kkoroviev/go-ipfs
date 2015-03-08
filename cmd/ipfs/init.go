@@ -75,13 +75,8 @@ func initWithDefaults(out io.Writer, repoRoot string) error {
 	return debugerror.Wrap(err)
 }
 
-func writef(out io.Writer, format string, ifs ...interface{}) error {
-	_, err := out.Write([]byte(fmt.Sprintf(format, ifs...)))
-	return err
-}
-
 func doInit(out io.Writer, repoRoot string, force bool, nBitsForKeypair int) error {
-	if err := writef(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
+	if _, err := fmt.Fprintf(out, "initializing ipfs node at %s\n", repoRoot); err != nil {
 		return err
 	}
 
@@ -148,8 +143,12 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		return err
 	}
 
-	writef(out, "to get started, enter:\n")
-	return writef(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
+	if _, err = fmt.Fprintf(out, "to get started, enter:\n"); err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "\n\tipfs cat /ipfs/%s/readme\n\n", dkey)
+	return err
 }
 
 func initializeIpnsKeyspace(repoRoot string) error {
